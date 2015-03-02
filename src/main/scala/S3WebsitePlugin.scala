@@ -10,60 +10,54 @@ import spray.http.MediaType
 
 
 
-object S3PublishPlugin extends sbt.AutoPlugin {
+object S3WebsitePlugin extends sbt.AutoPlugin {
 
 
   // This object namespaces all our settings
-  object S3P {
+  object S3WS {
 
-    lazy val s3PublishuploadData = TaskKey[(Seq[(File, String)], MetadataMap)]("all S3upload data")
+    lazy val s3wsUpload = taskKey[Unit]("Upload web assets to AWS S3")
 
-    lazy val publishToS3 = taskKey[Unit]("Publish Web assets to S3")
+    lazy val s3wsUploadInfo = TaskKey[(Seq[(File, String)], MetadataMap)]("Info on what files will be uploaded to where, and with what ObjectMetadata.\n NB this task is used internaly. To see a report of what will happen run `s3wsCheckInfo` instead.")
 
-    lazy val s3PublishIncremental = settingKey[Boolean]("Boolean, if true only publishes the files that have changed since last time publishToS3 was run. Defaults to false")
+    /**
+     * A string showing the files to be uploaded and the ObjectMetadata to be applied in a human readable way.
+     */
+    lazy val s3wsCheckInfo = TaskKey[String]("display the Upload info in a readable way")
 
-    lazy val s3PublishCompress = settingKey[Boolean]("Boolean, if true we compress eligible files. Defaults to true")
+    lazy val s3wsIncremental = settingKey[Boolean]("Boolean, defaults to true. If true only publishes the files that have changed since last time s3Upload was run.")
 
-    lazy val s3PublishDontModify = settingKey[Seq[File]]("Sequence of Files that we don't want to modify on upload, ie files that would normally be compressed but we don't want them to be.")
+    lazy val s3wsWithCompression = settingKey[Boolean]("Boolean, defaults to true. If true we compress eligible files.")
 
-    lazy val s3PublishAssetDir = settingKey[File]("Base dir for Web assets to publish. \nDefaults to the sbt-web stagingDirectory: target.value/web/stage\n note that it doesn't not depend on the sbt-web plugin but is intended to work with it.")
+    lazy val s3wsLeaveAsIs = settingKey[Seq[File]]("Sequence of Files that we don't want to modify on upload,\nie files that would normally be compressed but we don't want them to be.")
 
-//    lazy val metadataMapSeq = settingKey[Seq[(String, ObjectMetadata)]]("Seq of file extension to S3 ObjectMetadata")
-//
-//    lazy val metadataMap = taskKey[MetadataMap]("Map build out of metadataMapSeq")
+    lazy val s3wsAssetDir = settingKey[File]("Base dir for Web assets to publish.\nDefaults to the sbt-web stagingDirectory: target.value/web/stage.\n NB that it doesn't not depend on the sbt-web plugin but is intended to work with it.")
 
     /**
      * A string representing the S3 bucket name, in one of two forms:
      *  1. "mybucket.s3.amazonaws.com", where "mybucket" is the bucket name, or
      *  1. "mybucket", for instance in case the name is a fully qualified hostname used in a CNAME
      */
-    lazy val s3PublishHost=settingKey[String]("Host used by the publishToS3 operation, either \"mybucket.s3.amazonaws.com\" or \"mybucket\".")
+    lazy val host=settingKey[String]("Host used by the s3wsUpload operation, either \"mybucket.s3.amazonaws.com\" or \"mybucket\".")
 
     /**
-     * A list of S3 keys (pathnames) representing objects in a bucket on which a certain operation should be performed.
-     */
-//    val keys=TaskKey[Seq[String]]("s3-keys","List of S3 keys (pathnames) on which to perform a certain operation.")
-
-    /**
-     * If you set "progress" to true, a progress indicator will be displayed while the individual files are uploaded or downloaded.
+     * If you set "progressBar" to true, a progress indicator will be displayed while the individual files are uploaded or downloaded.
      * Only recommended for interactive use or testing; the default value is false.
      */
-    val s3PublishProgress=settingKey[Boolean]("Set to true to get a progress indicator during S3 uploads/downloads (default false).")
+    val progressBar =settingKey[Boolean]("Set to true to get a progress indicator during S3 uploads/downloads (default false).")
 
   }
 
-  import S3P._
+  import S3WS._
 
 
   override def projectSettings = Seq (
-    s3PublishCompress    := true,
-    s3PublishIncremental := false,
-    s3PublishDontModify  := Seq(),
-    s3PublishAssetDir    := target.value / "web" / "stage",
-    s3PublishuploadData  := S3Publish.calculateFilesAndMetadata(s3PublishAssetDir.value, target.value / "modfiles", s3PublishCompress.value, s3PublishDontModify.value, s3PublishIncremental.value /*, streams.value.log */ ),
-//    com.typesafe.sbt.S3Plugin.S3.metadata := s3PublishuploadData.value._2,
-//    (mappings in com.typesafe.sbt.S3Plugin.S3.upload) := s3PublishuploadData.value._1,
-    publishToS3          <<= initUpload(publishToS3,
+    s3wsWithCompression    := true,
+    s3wsIncremental := false,
+    s3wsLeaveAsIs  := Seq(),
+    s3wsAssetDir    := target.value / "web" / "stage",
+    s3wsUploadInfo  := S3Publish.calculateFilesAndMetadata(s3wsAssetDir.value, target.value / "modfiles", s3wsWithCompression.value, s3wsLeaveAsIs.value, s3wsIncremental.value /*, streams.value.log */ ),
+    s3wsUpload          <<= initUpload(s3wsUpload,
       { case (client,bucket,(file,key),metadataMap,progress) =>
         val mdo = metadataMap.get(key)
         val request=new PutObjectRequest(bucket,key,file)
@@ -77,8 +71,8 @@ object S3PublishPlugin extends sbt.AutoPlugin {
 
 
 
-    s3PublishHost := "",
-    s3PublishProgress := false
+    host in s3wsUpload := "",
+    progressBar in s3wsUpload := false
   )
 //      (s3PublishuploadData in publishToS3, host in publishToS3, streams) map { (updata, host, s) =>
 //        streams.log.info(lastMsg(bucket,items))
@@ -87,13 +81,13 @@ object S3PublishPlugin extends sbt.AutoPlugin {
   def initUpload(thisTask:TaskKey[Unit],
                        op: (AmazonS3Client, Bucket, (File,String), MetadataMap, Boolean) => Unit,
                        msg:(Bucket,(File,String))=>String, lastMsg:(Bucket,Seq[(File,String)])=>String ) =
-    (s3PublishuploadData in thisTask, credentials in thisTask, s3PublishHost in thisTask, s3PublishProgress in thisTask, streams ) map {
+    (s3wsUploadInfo in thisTask, credentials in thisTask, host in thisTask, progressBar in thisTask, streams ) map {
       (uploaddata, creds, host, progress, streams) =>
         S3Publish(creds,uploaddata._1,host,progress,streams,uploaddata._2, op,msg, lastMsg)
   }
 
 
-  private def progressBar(percent:Int) = {
+  private def doProgressBar(percent:Int) = {
     val b="=================================================="
     val s="                                                 "
     val p=percent/2
@@ -127,7 +121,7 @@ object S3PublishPlugin extends sbt.AutoPlugin {
       if(progressEvent.getEventCode() == ProgressEvent.PART_COMPLETED_EVENT_CODE) {
         uploadedBytes=uploadedBytes+progressEvent.getBytesTransfered()
       }
-      print(progressBar(if (fileSize>0) ((uploadedBytes*100)/fileSize).toInt else 100))
+      print(doProgressBar(if (fileSize>0) ((uploadedBytes*100)/fileSize).toInt else 100))
       print(fileName)
       if (progressEvent.getEventCode() == ProgressEvent.COMPLETED_EVENT_CODE)
         println()
