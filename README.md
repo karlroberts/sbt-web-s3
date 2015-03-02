@@ -12,6 +12,9 @@ so that a browser will expand the file on render.
 While this plugin is not an sbt-web plugin or pipeline it's default configuration is designed to be used after
 running sbt-web's `webStage` task which places all the ready to publish web assets in `target.value/web/stage`.
 
+In order to see the results of using the plugin as a website you should follow the AWS instructions on 
+setting up the bucket to serve a static website at http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html
+
 There are a number or settings that effect what is uploaded and what is compressed.
 
 for this help use:-
