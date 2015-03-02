@@ -7,10 +7,10 @@ import scala.io.Source
 
 object HelloPlugin extends sbt.AutoPlugin {
 
-    lazy val aboutSbtWebS3 = taskKey[Unit]("Prints hello world")
+    lazy val s3wsReadme = taskKey[Unit]("Prints hello world")
 
     override def projectSettings = Seq (
-      aboutSbtWebS3  := {
+      s3wsReadme  := {
         val url = getClass.getResource("/about/README.md")
         if(url != null)
         {
@@ -19,7 +19,7 @@ object HelloPlugin extends sbt.AutoPlugin {
           source.getLines().foreach { streams.value.log.info(_) }
         } else
         {
-          streams.value.log.error("WTF! could not find resource at /about/README.md")
+          streams.value.log.error("Could not find resource at /about/README.md")
         }
 
       }
