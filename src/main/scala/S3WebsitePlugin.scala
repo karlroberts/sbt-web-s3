@@ -45,39 +45,39 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
      * Only recommended for interactive use or testing; the default value is false.
      */
     val progressBar =settingKey[Boolean]("Set to true to get a progress indicator during S3 uploads/downloads (default false).")
-
   }
 
   import S3WS._
 
-
   override def projectSettings = Seq (
-    s3wsWithCompression    := true,
-    s3wsIncremental := false,
-    s3wsLeaveAsIs  := Seq(),
-    s3wsAssetDir    := target.value / "web" / "stage",
-    s3wsUploadInfo  := S3Publish.calculateFilesAndMetadata(s3wsAssetDir.value, target.value / "modfiles", s3wsWithCompression.value, s3wsLeaveAsIs.value, s3wsIncremental.value /*, streams.value.log */ ),
-    s3wsUpload          <<= initUpload(s3wsUpload,
+    s3wsWithCompression       := true,
+    s3wsIncremental           := false,
+    s3wsLeaveAsIs             := Seq(),
+    s3wsAssetDir              := target.value / "web" / "stage",
+    s3wsUploadInfo            := S3Publish.calculateFilesAndMetadata(s3wsAssetDir.value, target.value / "modfiles", s3wsWithCompression.value, s3wsLeaveAsIs.value, s3wsIncremental.value /*, streams.value.log */ ),
+    host in s3wsUpload        := "",
+    progressBar in s3wsUpload := false,
+    s3wsUpload                <<= initUpload(s3wsUpload,
       { case (client,bucket,(file,key),metadataMap,progress) =>
         val mdo = metadataMap.get(key)
         val request=new PutObjectRequest(bucket,key,file)
         if (progress) addProgressListener(request,file.length(),key)
         if (mdo.isDefined) {
-          client.putObject(request.withMetadata(mdo.get))
-        } else client.putObject(request)
+            client.putObject(request.withMetadata(mdo.get))
+          } else client.putObject(request)
       },
       { case (bucket,(file,key)) =>  "Uploading "+file.getAbsolutePath()+" as "+key+" into "+bucket },
-      {      (bucket,mapps) =>       "Uploaded "+mapps.length+" files to the S3 bucket \""+bucket+"\"." }),
-
-
-
-    host in s3wsUpload := "",
-    progressBar in s3wsUpload := false
+      {      (bucket,mapps) =>       "Uploaded "+mapps.length+" files to the S3 bucket \""+bucket+"\"." })
   )
-//      (s3PublishuploadData in publishToS3, host in publishToS3, streams) map { (updata, host, s) =>
-//        streams.log.info(lastMsg(bucket,items))
-//      }
 
+  /**
+   * Helper function to prepare an upload task.
+   * @param thisTask The task to prepare, passed in so we can limit scope to it.
+   * @param op The Function that operated the AWS API for an individual file to upload.
+   * @param msg
+   * @param lastMsg
+   * @return
+   */
   def initUpload(thisTask:TaskKey[Unit],
                        op: (AmazonS3Client, Bucket, (File,String), MetadataMap, Boolean) => Unit,
                        msg:(Bucket,(File,String))=>String, lastMsg:(Bucket,Seq[(File,String)])=>String ) =

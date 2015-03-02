@@ -21,6 +21,13 @@ for this help use:-
 
     $ sbt s3wsReadme
 
+## To Build
+
+* clone this repo and run sbt
+    $ git clone https://github.com/Ecetera/sbt-web-s3.git
+    $ ./sbt
+
+
 ## Usage
 
 * add to your project/plugin.sbt the following lines:-
