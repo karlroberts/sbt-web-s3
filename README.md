@@ -4,35 +4,36 @@
 
 ## Description
 
-This plugin's main goal is to allow you to publish compressed static website assets to an Amazon AWS S3 bucket.
+This AutoPlugin's main goal is to allow you to publish compressed static website assets to an Amazon AWS S3 bucket.
 By default all the files found in the s3wsAssetDir will be uploaded to the specified bucket. Files that can
 be compressed will be gzip'ed on upload and the S3 ObjectMetadata (aka the Content-Encoding header) will be set
 so that a browser will expand the file on render.
 
-While this plugin is not an sbt-web plugin or pipeline it's default configuration is designed to be used after
-running sbt-web's `webStage` task which places all the ready to publish web assets in `target.value/web/stage`.
+### [sbt-web](https://github.com/sbt/sbt-web) interaction
+While this plugin is not an sbt-web pipeline plugin its default configuration is designed to work with sbt-web piplines
+For example the default location it searches for web assets is the default `webStage` directory ie `./target/web/stage`.
+So a typical usecase would be to run sbt-web's `webStage` task which places all the ready to publish web assets in `target/web/stage`
+and then run `s3wsUpload` to push the contents to the S3 bucket.
 
-In order to see the results of using the plugin as a website you should follow the AWS instructions on 
-setting up the bucket to serve a static website at http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html
+### Other info
+* The plugin is an AutoPlugin, so it is designed to be used by sbt 0.13.5 or above. If you're not sure what version od sbt you are using
+ run
+    $ sbt sbtVersion
+ You could also copy the ./sbt script to the root of your project and use it to run sbt.
+* In order to see the results of using the plugin as a website you should follow the AWS instructions on
+[setting up the bucket to serve a static website at](http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html)
+* You will also need to [get your amazon credentials and secret key](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSGettingStartedGuide/AWSCredentials.html)
+ in order to let the plugin connect and upload files into your bucket. See the example below to see how to use these credentials.
 
-There are a number or settings that effect what is uploaded and what is compressed.
+For this help use:-
 
-for this help use:-
-
-    $ sbt s3wsReadme
-
-## To Build
-
-* clone this repo and run sbt
-    $ git clone https://github.com/Ecetera/sbt-web-s3.git
-    $ ./sbt
-
+    $ ./sbt s3wsReadme
 
 ## Usage
 
-* add to your project/plugin.sbt the following lines:-
+* add to your project/plugin.sbt the following line:-
 
-    addSbtPlugin("au.com.ecetera.sbt" % "sbt-web-s3" % "0.1.0-SNAPSHOT")
+    addSbtPlugin("au.com.ecetera.sbt" %% "sbt-web-s3" % "0.1.0-SNAPSHOT")
 
 You will then be able to use the task `s3wsUpload` defined
 in the nested object `au.com.ecetera.sbt.S3WebsitePlugin.S3WS`.
@@ -81,7 +82,7 @@ build.sbt:
 
     progressBar in s3wsUpload := true
 
-    credentials += Credentials(Path.userHome / ".s3Credentials")
+    credentials += Credentials(Path.userHome / ".s3credentials")
 
 ~/.s3credentials:
 
@@ -90,9 +91,9 @@ build.sbt:
     user=<Access Key ID>
     password=<Secret Access Key>
 
-Just create two sample files called "a" and "b" in the same directory that contains build.sbt, then try:
+Just create two sample files called "index.html" and "./js/myscript,js" in the s3wsAssetDir directory (ie ./target/web/stage), then try:
 
-    $ sbt s3-upload
+    $ sbt s3wsUpload
 
 assuming you have (progressBar in upload) set to true , which is recommended only for testing, you will see progress
 on upload.
@@ -102,8 +103,23 @@ on upload.
     [==================================================]   100%   index.html
     [=====================================>            ]    74%   /js/myscript.js
 
-For bug fixes or suggestions please use the Github issues link
-https://github.com/Ecetera/sbt-web-s3/issues
+## Example 2
+If you are not using sbt-web plugin and want to change the default s3wsAssetDir to ./web, say, then you can add this to your build.sbt
+
+build.sbt:
+
+    s3wsAssetDir := baseDirectory.value / "web"
+
+
+## Bug fixes
+For bug fixes or suggestions please use the [Github issues link](https://github.com/Ecetera/sbt-web-s3/issues)
+
+## Develop
+Clone this repo.
+    $ git clone https://github.com/Ecetera/sbt-web-s3.git
+
+To Build.
+    $ ./sbt
 
 Have fun.
 
