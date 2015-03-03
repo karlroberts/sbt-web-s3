@@ -2,6 +2,11 @@
 
 # sbt-web-s3
 
+### Status
+currently a 0.1.0-SNAPSHOT build and has not been release to a repo yet.
+Therefore not ready for production.
+It does publish to S3 but Incremental mode is not yet active.
+
 ## Description
 
 This AutoPlugin's main goal is to allow you to publish compressed static website assets to an Amazon AWS S3 bucket.
