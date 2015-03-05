@@ -1,4 +1,4 @@
-version := "0.1.0-SNAPSHOT"
+version := "0.2.0-SNAPSHOT"
 
 sbtPlugin := true
 
@@ -30,6 +30,10 @@ resourceGenerators in Compile += Def.task {
   IO.copyFile(readme, file, false)
   Seq(file)
 }.taskValue
+
+scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/root-doc.txt")
+
+scalacOptions in (Compile, doc) ++= Seq("-doc-title", "My Wonderful Module")
 
 
 

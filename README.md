@@ -3,7 +3,7 @@
 # sbt-web-s3
 
 ### Status
-currently a 0.1.0-SNAPSHOT build and has not been release to a repo yet.
+Currently a 0.2.0-SNAPSHOT build and has not been release to a repo yet.
 Therefore not ready for production.
 It does publish to S3 but Incremental mode is not yet active.
 
@@ -47,6 +47,11 @@ All these operations will use HTTPS as a transport protocol.
 Please check the Scaladoc API of the `S3WebsitePlugin` object, and of its nested `S3WS` object,
 to get additional documentation of the available sbt tasks.
 
+## Task Descriptions
+    s3wsUpload : this task will use you Settings (see below) to upload Web assets to your S3 bucket
+
+    s3wsDeleteAll : This task will use you settings to delete all objects from your S3 bucket
+
 ## Setting Descriptions
 
     s3wsIncremental : Boolean, defaults to true. If true only publishes the files that have changed since last time s3Upload was run.
@@ -62,7 +67,9 @@ to get additional documentation of the available sbt tasks.
                    Defaults to the sbt-web stagingDirectory: target.value/web/stage.
                    NB that it doesn't not depend on the sbt-web plugin but is intended to work with it.
 
-    host in s3wsUpload : Host used by the s3wsUpload task, either "mybucket.s3.amazonaws.com" or "mybucket".
+    bucket in s3wsUpload : S3 bucket used by the s3wsUpload task, either "mybucket.s3.amazonaws.com" or "mybucket".
+
+    bucket in s3wsDeleteAll : S3 bucket used by the s3wsDeleteAll task, either "mybucket.s3.amazonaws.com" or "mybucket".
 
     progressBar in s3wsUpload : Boolean, defaults to false. Set to true to get a progress indicator during S3 uploads/downloads.
 
@@ -83,7 +90,9 @@ build.sbt:
 
     import S3WS._
 
-    host in s3wsUpload := "your-bucket.s3.amazonaws.com"
+    bucket in s3wsUpload := "your-bucket.s3.amazonaws.com"
+
+    bucket in s3wsDeleteAll := "your-bucket.s3.amazonaws.com"
 
     progressBar in s3wsUpload := true
 
