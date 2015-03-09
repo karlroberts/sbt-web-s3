@@ -28,6 +28,12 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
      */
     lazy val s3wsDeleteAll = taskKey[Try[DeleteObjectsResult]]("Delete all Objects from the bucket specified by bucket")
 
+    lazy val s3wsDeleteWhat = taskKey[Try[Set[S3Key]]]("Show What will be deleted from S3 on Next Upload to keep in sync with AssetDir")
+
+    lazy val s3wsDeleteDiff = taskKey[Try[DeleteObjectsResult]]("Deleted from S3 locally deleted assets to keep in sync with AssetDir")
+
+    lazy val s3wsSync = taskKey[Unit]("remove stuff that has been deleted and upload web stage dir")
+
     lazy val s3wsUploadInfo = TaskKey[(Seq[(File, String)], MetadataMap)]("Info on what files will be uploaded to where, and with what ObjectMetadata.\n NB this task is used internaly. To see a report of what will happen run `s3wsCheckInfo` instead.")
 
     /** A string showing the files to be uploaded and the ObjectMetadata to be applied in a human readable way.
@@ -45,7 +51,7 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
     /**
      * A string representing the S3 bucket name, in one of two forms:
      *  1. "mybucket.s3.amazonaws.com", where "mybucket" is the bucket name, or
-     *  1. "mybucket", for instance in case the name is a fully qualified hostname used in a CNAME
+     *  1. "mybucket"
      */
     lazy val bucket=settingKey[String]("Host used by the s3wsUpload operation, either \"mybucket.s3.amazonaws.com\" or \"mybucket\".")
 
@@ -57,8 +63,10 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
   }
 
   import S3WS._
-  import com.amazonaws.services.s3.internal.DeleteObjectsResponse
+  import java.util.{List => JList}
+  import com.amazonaws.services.s3.internal
   import com.amazonaws.services.s3.model.DeleteObjectsResult
+  import com.amazonaws.services.s3.model.S3ObjectSummary
 
   import scala.util.Try
 
@@ -67,10 +75,26 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
     s3wsIncremental           := false,
     s3wsLeaveAsIs             := Seq(),
     s3wsAssetDir              := target.value / "web" / "stage",
-    s3wsUploadInfo            := S3Publish.calculateFilesAndMetadata(s3wsAssetDir.value, target.value / "modfiles", s3wsWithCompression.value, s3wsLeaveAsIs.value, s3wsIncremental.value /*, streams.value.log */ ),
+    s3wsUploadInfo            := {
+      S3Publish.calculateFilesAndMetadata(s3wsAssetDir.value, target.value / "s3ws.lastupload",
+        target.value / "modfiles",
+        s3wsWithCompression.value,
+        s3wsLeaveAsIs.value,
+        s3wsIncremental.value /*, streams.value.log */ )
+    },
     bucket in s3wsUpload      := "",
     bucket in s3wsDeleteAll   := "",
     progressBar in s3wsUpload := false,
+    s3wsDeleteWhat <<= initDeleteWhat(s3ObjectSummaries),
+    s3wsDeleteDiff <<= initDeleteDiff(                     s3wsUploadInfo
+      delKeysFromS3,
+      { (bucket,key) =>          "I am Deleting "+key+" from "+bucket },
+      { (bucket) =>        "Deleted objects from the S3 bucket \""+bucket+"\"." }
+    ),
+
+    s3wsSync := {s3wsDeleteDiff.value; s3wsUpload.value},
+
+
     s3wsUpload                <<= initUpload(s3wsUpload,
       { case (client,bucket,(file,key),metadataMap,progress) =>
         val mdo = metadataMap.get(key)
@@ -81,20 +105,20 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
           } else client.putObject(request)
       },
       { case (bucket,(file,key)) =>  "Uploading "+file.getAbsolutePath()+" as "+key+" into "+bucket },
-      {      (bucket,mapps) =>       "Uploaded "+mapps.length+" files to the S3 bucket \""+bucket+"\"." }),
-    s3wsDeleteAll <<= initDeleteAll(s3wsDeleteAll,
-    { (client,bucket) => {
-      import com.amazonaws.services.s3.model.DeleteObjectsRequest
+      {      (bucket,mapps) =>       "Uploaded "+mapps.length+" files to the S3 bucket \""+bucket+"\"." }
+    ),
 
-      import scala.collection.JavaConverters._
-      val sums = client.listObjects(bucket).getObjectSummaries
-      val x = {sums.asScala map { (s) => new DeleteObjectsRequest.KeyVersion(s.getKey) }}.asJava
-      client.deleteObjects(new DeleteObjectsRequest(bucket).withQuiet(false).withKeys(x))
-    } },
-    { (bucket,key) =>          "I am Deleting "+key+" from "+bucket },
-    { (bucket) =>        "Deleted objects from the S3 bucket \""+bucket+"\"." }
+
+    s3wsDeleteAll <<= initDeleteAll(
+      s3wsDeleteAll,
+      deleteAllFromS3,
+      { (bucket,key) =>          "I am Deleting "+key+" from "+bucket },
+      { (bucket) =>        "Deleted objects from the S3 bucket \""+bucket+"\"." }
     )
-  )
+  ) //endProjectSettings
+
+
+
 
   /**
    * Helper function to prepare an upload task.
@@ -104,20 +128,38 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
    * @param lastMsg
    * @return
    */
-  def initUpload(thisTask:TaskKey[Unit],
-                       op: (AmazonS3Client, Bucket, (File,String), MetadataMap, Boolean) => Unit,
-                       msg:(Bucket,(File,String))=>String, lastMsg:(Bucket,Seq[(File,String)])=>String ) =
-    (s3wsUploadInfo in thisTask, credentials in thisTask, bucket in thisTask, progressBar in thisTask, streams ) map {
-      (uploaddata, creds, host, progress, streams) =>
-        S3Publish(creds,uploaddata._1,host,progress,streams,uploaddata._2, op,msg, lastMsg)
+  def initUpload(
+                  thisTask:TaskKey[Unit],
+                  op: (AmazonS3Client, S3Bucket, (File,String), MetadataMap, Boolean) => Unit,
+                  msg:(S3Bucket,(File,String))=>String, lastMsg:(S3Bucket,Seq[(File,String)])=>String) =
+    (target in thisTask, s3wsUploadInfo in thisTask, credentials in thisTask, bucket in thisTask, progressBar in thisTask, s3wsIncremental in thisTask,  streams ) map {
+      (target, uploaddata, creds, host, progress, incremental, streams) => {
+        S3Publish(creds, uploaddata._1, host, progress, streams, uploaddata._2, op, msg, lastMsg, target / "s3ws.lastupload" )
+      }
   }
 
   def initDeleteAll(thisTask:TaskKey[Try[DeleteObjectsResult]],
-                 op: (AmazonS3Client, Bucket) => DeleteObjectsResult,
-                 msg:(Bucket,String)=>String, lastMsg:(Bucket)=>String ) =
+                 op: (AmazonS3Client, S3Bucket) => Try[DeleteObjectsResult],
+                 msg:(S3Bucket,String)=>String, lastMsg:(S3Bucket)=>String ) =
     (credentials in thisTask, bucket in thisTask, streams ) map {
       (creds, bucket, streams) =>
         S3Publish.deleteAll(creds, bucket, streams, op, msg, lastMsg)
+    }
+
+  def initDeleteDiff(op:(AmazonS3Client, S3Bucket, Set[S3Key]) => Try[DeleteObjectsResult],
+                     msg:(S3Bucket,String)=>String, lastMsg:(S3Bucket)=>String ) =
+    (credentials in s3wsDeleteAll, bucket in s3wsDeleteAll, s3wsDeleteWhat, streams) map {
+      (creds,bucket, delWhat, streams) =>
+        S3Publish.deleteFromS3(creds, bucket, delWhat, streams, op, msg, lastMsg)
+    }
+
+  def initDeleteWhat(op: (AmazonS3Client, S3Bucket) => Try[List[S3ObjectSummary]]) =
+    (s3wsAssetDir in s3wsUpload, credentials in s3wsUpload, bucket in s3wsUpload, streams ) map {
+      (assetDir, creds, bucket, streams) =>
+        val toDel = S3Publish.diffWithLocal(assetDir, creds, bucket, op)
+        val ret = toDel.map(_.fold("")((acc, s) => acc ++ s"will del -> $s")) getOrElse ("Oops Was unable to see what should be deleted")
+        streams.log.info(ret)
+        toDel
     }
 
 
@@ -184,10 +226,11 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
 }
 
 object S3Publish {
+  import java.util.{List => JList}
   import au.com.ecetera.util.Predicate._
   import com.amazonaws.services.simpledb.model.Item
   import spray.http.MediaTypes._
-  import com.amazonaws.services.s3.model.{DeleteObjectsResult, ObjectMetadata}
+  import com.amazonaws.services.s3.model.{S3ObjectSummary, DeleteObjectsResult, ObjectMetadata}
   import com.amazonaws.{ClientConfiguration, Protocol}
   import com.amazonaws.auth.BasicAWSCredentials
   import com.amazonaws.services.s3.AmazonS3Client
@@ -212,8 +255,9 @@ object S3Publish {
             progress: Boolean,
             streams: Keys.TaskStreams,
             metadata: MetadataMap,
-            op: (AmazonS3Client, Bucket, Item, MetadataMap, Boolean) => Unit,
-            msg:(Bucket,Item)=>String, lastMsg:(Bucket,Seq[Item])=>String ): Unit = {
+            op: (AmazonS3Client, S3Bucket, Item, MetadataMap, Boolean) => Unit,
+            msg:(S3Bucket,Item)=>String, lastMsg:(S3Bucket,Seq[Item])=>String,
+            lastUploadFile:File): Unit = {
 
     val client = getClient(creds, bucketName)
     val bucket = getBucket(bucketName)
@@ -221,28 +265,66 @@ object S3Publish {
       streams.log.debug(msg(bucket,item))
       op(client,bucket,item, metadata, progress)
     }
+    IO.write(lastUploadFile, "" + new java.util.Date().getTime())
     streams.log.info(lastMsg(bucket,items))
   }
 
-  def deleteAll(creds: Seq[Credentials], bucketName: String, streams: Keys.TaskStreams, op: (AmazonS3Client, Bucket)=>DeleteObjectsResult , msg:(Bucket, String)=>String, lastMsg:(Bucket)=>String ): Try[DeleteObjectsResult] = {
+  def deleteAll(creds: Seq[Credentials], bucketName: String, streams: Keys.TaskStreams,
+                op: (AmazonS3Client, S3Bucket)=>Try[DeleteObjectsResult] ,
+                msg:(S3Bucket, String)=>String,
+                lastMsg:(S3Bucket)=>String ): Try[DeleteObjectsResult] = {
+    val client = getClient(creds, bucketName)
+    val bucket = getBucket(bucketName)
+    val ret = op(client, bucket)
+    ret.foreach{
+      import scala.collection.JavaConverters._
+      dor => dor.getDeletedObjects.asScala.foreach( thedo => msg(bucket, thedo.getKey) )
+    }
+    streams.log.info(lastMsg(bucket))
+    ret
+  }
+
+  def deleteFromS3(creds: Seq[Credentials], bucketName: String, keys:Try[Set[S3Key]], streams: Keys.TaskStreams,
+                op: (AmazonS3Client, S3Bucket, Set[S3Key])=>Try[DeleteObjectsResult] ,
+                msg:(S3Bucket, String)=>String,
+                lastMsg:(S3Bucket)=>String ): Try[DeleteObjectsResult] = {
+    val client = getClient(creds, bucketName)
+    val bucket = getBucket(bucketName)
+    val ret = keys flatMap {ks => op(client, bucket, ks)}
+    ret.foreach{
+      import scala.collection.JavaConverters._
+      dor => dor.getDeletedObjects.asScala.foreach( thedo => msg(bucket, thedo.getKey) )
+    }
+    streams.log.info(lastMsg(bucket))
+    ret
+  }
+
+  /** Returns a Sequence of keys (S3 paths) that no longer exist locally.
+    * The Idea is that we use this list to delete those files remotely before incrementally uploading local changes.
+    * This will produce an rsync like behaviour where the S3 bucket reflects the local staging Dir.
+   *
+   * @param creds
+   * @param bucketName
+   * @return S3 keys that exist remotely but don't exist locally
+   */
+  def diffWithLocal(assetDir: File, creds: Seq[Credentials], bucketName: String, op: (AmazonS3Client, S3Bucket) => Try[List[S3ObjectSummary]]): Try[Set[S3Key]] = {
     import scala.collection.JavaConverters._
     val client = getClient(creds, bucketName)
     val bucket = getBucket(bucketName)
-    val t = Try{
-      val ret = op(client, bucket)
-      ret.getDeletedObjects.asScala foreach { d => streams.log.debug(msg(bucket, d.getKey))}
+    op(client, bucket) map { s3s =>
+      val remotes = s3s.map(os => os.getKey)
+      val assets = (assetDir ** "*").get.filter( ((d:File) => d != assetDir ) && ((d:File) => !d.isDirectory))
+      val assetsS = (assets map { IO.relativize(assetDir, _)} flatten) toSet
+      val ret = remotes.toSet.diff(assetsS)
       ret
-      }
-    streams.log.info(lastMsg(bucket))
-    t
+    }
   }
 
 
-
-  def calculateFilesAndMetadata(assetDir: File, modifiedDir: File, compress: Boolean, dontMod: Seq[File], incremental: Boolean/*, log: Logger*/): (Seq[(File, String)], MetadataMap) = {
+  def calculateFilesAndMetadata(assetDir: File, lastUploadFile:File, modifiedDir: File, compress: Boolean, dontMod: Seq[File], incremental: Boolean/*, log: Logger*/): (Seq[(File, String)], MetadataMap) = {
     IO.assertDirectory(assetDir)
     //get list of all files under assetDir that need to be uploaded ie only new ones if incremental
-    val assets = (assetDir ** "*").get.filter( ((d:File) => d != assetDir ) && ((d:File) => !d.isDirectory) && newfiles(incremental))
+    val assets = (assetDir ** "*").get.filter( ((d:File) => d != assetDir ) && ((d:File) => !d.isDirectory) && newfiles(incremental, lastUploadFile))
 // d => { evalx(d) && evaly(d) )
 
     val compressedFIles: Map[String, (File, MediaType)] = compress match {
@@ -282,11 +364,19 @@ object S3Publish {
     //TODO improove this algo so we only traverse lists once
     !dontModSet.contains(f)
   }
-  def newfiles(incremental: Boolean): (File) => Boolean = (f) => {
-    if (incremental) (f.lastModified > lastRunTime) else true
+  def newfiles(incremental: Boolean, lastUpload:File): (File) => Boolean = (f) => {
+    if (incremental) modified(f, lastUpload) else true
   }
 
-  def lastRunTime = 0L // TODO
+  def modified(f: File, lastRunFile: File): Boolean = f.lastModified() > lastRunTime(lastRunFile)
+
+  def lastRunTime(lastRunFile: File) = {
+    try {
+      IO.read(lastRunFile).trim().toLong
+    } catch {
+      case _: Exception => 0L
+    }
+  }
 
   val fnamePat = """(.*)[.]([^.]*)""".r
 

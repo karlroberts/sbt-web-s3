@@ -30,8 +30,49 @@ import com.amazonaws.services.s3.model.ObjectMetadata
  * Created by robertk on 27/02/15.
  */
 package object sbt {
+
+  import com.amazonaws.services.s3.AmazonS3Client
+  import com.amazonaws.services.s3.model.{DeleteObjectsResult, S3ObjectSummary}
+
+  import scala.util.Try
+
   type MetadataMap = Map[String, ObjectMetadata]
-  type Bucket=String
+  type S3Bucket = String
+  type S3Key = String
+
+
+  /** Helper to get all Object Summaries from S3 Java API into Scala collection */
+  def s3ObjectSummaries(client: AmazonS3Client, bucket: S3Bucket) : Try[List[S3ObjectSummary]] = {
+    import scala.collection.JavaConverters._
+    Try{
+      client.listObjects(bucket).getObjectSummaries.asScala.toList
+    }
+  }
+
+  /**
+   * Helper function to delete a list of S3Keys from a Bucket
+   */
+  def delKeysFromS3(client: AmazonS3Client, bucket: S3Bucket, s3keys: Set[S3Key]):  Try[DeleteObjectsResult] = {
+    import scala.collection.JavaConverters._
+    import com.amazonaws.services.s3.model.DeleteObjectsRequest
+
+    Try {
+      val x = {
+        s3keys map { (k) => import com.amazonaws.services.s3.model.DeleteObjectsRequest
+          new DeleteObjectsRequest.KeyVersion(k)
+        }
+      }.toList.asJava
+      client.deleteObjects(new DeleteObjectsRequest(bucket).withQuiet(false).withKeys(x))
+    }
+  }
+
+  def deleteAllFromS3(client: AmazonS3Client, bucket: S3Bucket):  Try[DeleteObjectsResult] = {
+    for {
+      oss <- s3ObjectSummaries(client, bucket)
+      keys = oss map (os => os.getKey)
+      dor <- delKeysFromS3(client, bucket, keys.toSet)
+    } yield dor
+  }
 }
 
 
