@@ -34,11 +34,11 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
 
     lazy val s3wsSync = taskKey[Unit]("remove stuff that has been deleted and upload web stage dir")
 
-    lazy val s3wsUploadInfo = TaskKey[(Seq[(File, String)], MetadataMap)]("Info on what files will be uploaded to where, and with what ObjectMetadata.\n NB this task is used internaly. To see a report of what will happen run `s3wsCheckInfo` instead.")
+    lazy val s3wsUploadInfo = taskKey[(Seq[(File, String)], MetadataMap)]("Info on what files will be uploaded to where, and with what ObjectMetadata.\n NB this task is used internaly. To see a report of what will happen run `s3wsCheckInfo` instead.")
 
     /** A string showing the files to be uploaded and the ObjectMetadata to be applied in a human readable way.
       */
-    lazy val s3wsCheckInfo = TaskKey[String]("display the Upload info in a readable way")
+    lazy val s3wsCheckInfo = taskKey[String]("display the Upload info in a readable way... TODO")
 
     lazy val s3wsIncremental = settingKey[Boolean]("Boolean, defaults to true. If true only publishes the files that have changed since last time s3Upload was run.")
 
