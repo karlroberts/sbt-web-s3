@@ -39,13 +39,34 @@ package object sbt {
   type MetadataMap = Map[String, ObjectMetadata]
   type S3Bucket = String
   type S3Key = String
+  type S3Prefix = String
 
 
   /** Helper to get all Object Summaries from S3 Java API into Scala collection */
-  def s3ObjectSummaries(client: AmazonS3Client, bucket: S3Bucket) : Try[List[S3ObjectSummary]] = {
+  def s3ObjectSummaries(client: AmazonS3Client, bucket: S3Bucket, prefix: S3Prefix) : Try[List[S3ObjectSummary]] = {
+    import com.amazonaws.services.s3.model.ObjectListing
+
+    import scala.annotation.tailrec
     import scala.collection.JavaConverters._
+
+    @tailrec
+    def buildFullList(client: AmazonS3Client, previousListing: ObjectListing, acc: List[S3ObjectSummary]): List[S3ObjectSummary] = {
+      val ol = client.listNextBatchOfObjects(previousListing)
+      val oss = ol.getObjectSummaries.asScala.toList
+      oss match {
+        case Nil => acc
+        case _   => buildFullList(client, ol, acc ::: oss )
+      }
+    }
+
     Try{
-      client.listObjects(bucket).getObjectSummaries.asScala.toList
+      val oList = if(prefix.isEmpty) {
+        client.listObjects(bucket)
+      } else {
+        client.listObjects(bucket, prefix)
+      }
+      val summaries = buildFullList(client, oList, oList.getObjectSummaries.asScala.toList)
+      summaries
     }
   }
 
@@ -66,9 +87,9 @@ package object sbt {
     }
   }
 
-  def deleteAllFromS3(client: AmazonS3Client, bucket: S3Bucket):  Try[DeleteObjectsResult] = {
+  def deleteAllFromS3(client: AmazonS3Client, bucket: S3Bucket, prefix: S3Prefix):  Try[DeleteObjectsResult] = {
     for {
-      oss <- s3ObjectSummaries(client, bucket)
+      oss <- s3ObjectSummaries(client, bucket, prefix)
       keys = oss map (os => os.getKey)
       dor <- delKeysFromS3(client, bucket, keys.toSet)
     } yield dor
