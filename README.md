@@ -3,9 +3,11 @@
 # sbt-web-s3
 
 ### Status
-Currently a 0.2.0-SNAPSHOT build and has not been release to a repo yet.
+Currently a 0.2.1-SNAPSHOT build and has not been release to a repo yet.
 Therefore not ready for production.
-It does publish to S3 but Incremental mode is not yet active.
+It does publish to S3.
+Incremental mode works so now with s3wsSync - so only changed files go up and deleted file are removed.
+sw3Prefix now enables publishing and deleting from a "directory" or "folder" in your bucket.
 
 ## Description
 
