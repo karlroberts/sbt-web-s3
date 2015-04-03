@@ -1,6 +1,6 @@
 # Makefile is intended to automate some developmnet houskeeping
 # eg updateing the ./sbt script from github and re-checking it in etc
-# to prevent wierdness it will also just kick-off sbt if no target is specified.
+# to prevent wierdness it will also just kick-off sbt if no target is specified and do a publishLocal.
 
 SBT = https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt
 
@@ -29,7 +29,7 @@ endif
 .PHONY: all
 all: sbt
 	echo doing sbt...
-	./sbt clean test compile
+	./sbt clean test compile publishLocal
 
 sbt:
 	echo git is $(GIT)
