@@ -39,14 +39,14 @@ For this help use:-
 
 ## Usage
 
-* add to your project/plugin.sbt the following line:-
+Add to your project/plugin.sbt the following line:-
 
     addSbtPlugin("au.com.ecetera.sbt" %% "sbt-web-s3" % "0.2.1-SNAPSHOT")
 
-* add to your build.sbt file the following line:-
+Add to your build.sbt file the following line:-
 
     import au.com.ecetera.sbt.S3WebsitePlugin.S3WS._
-
+    
     enablePlugins(S3WebsitePlugin)
 
 You will then be able to use the task `s3wsSync` or `s3wsUpload` defined
