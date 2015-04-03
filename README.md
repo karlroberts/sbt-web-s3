@@ -185,13 +185,16 @@ touched or not.
 
 ## Develop
 Clone this repo.
+
     $ git clone https://github.com/Ecetera/sbt-web-s3.git
 
 To Build
+
     $ ./sbt
 
 NB currently this is not published anywhere so to use it you need to publishLocal
 as a helper the Makefile can do this for you, or simply type "publishLocal" from the sbt prompt.
+
     $ make
 
 Have fun.
