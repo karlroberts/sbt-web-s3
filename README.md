@@ -45,7 +45,7 @@ For this help use:-
 
 * add to your build.sbt file the following line:-
 
-    import _root_.au.com.ecetera.sbt.S3WebsitePlugin.S3WS._
+    import au.com.ecetera.sbt.S3WebsitePlugin.S3WS._
 
     enablePlugins(S3WebsitePlugin)
 
