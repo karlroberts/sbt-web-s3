@@ -7,7 +7,7 @@ import scala.io.Source
 
 object HelloPlugin extends sbt.AutoPlugin {
 
-    lazy val s3wsReadme = taskKey[Unit]("Prints hello world")
+    lazy val s3wsReadme = taskKey[Unit]("Prints sbt-web-s3 usage information")
 
     override def projectSettings = Seq (
       s3wsReadme  := {
