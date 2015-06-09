@@ -3,9 +3,7 @@
 # sbt-web-s3
 
 ### Status
-* Currently a 0.2.1-SNAPSHOT build and has not been release to a repo yet.
-* Therefore not ready for production.
-* To use it you'll need to build it locally.
+* Currently a 0.2.1-20150609054819-72af433
 * It does publish to S3.
 * Incremental mode works so now with s3wsSync - so only changed files go up and deleted file are removed.
 * sw3Prefix now enables publishing and deleting from a "directory" or "folder" in your bucket.
@@ -39,9 +37,11 @@ For this help use:-
 
 ## Usage
 
-Add to your project/plugin.sbt the following line:-
+Add to your project/sbt-web-s3.sbt the following lines:-
 
-    addSbtPlugin("au.com.ecetera.sbt" %% "sbt-web-s3" % "0.2.1-SNAPSHOT")
+    resolvers += Resolver.url("ecetera-repo-oss", new URL("https://s3-ap-southeast-2.amazonaws.com/ecetera-repo-oss/"))(Resolver.ivyStylePatterns)
+
+    addSbtPlugin("au.com.ecetera.sbt" % "sbt-web-s3" % "0.2.1-20150609054819-72af433")
 
 Add to your build.sbt file the following line:-
 

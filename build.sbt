@@ -1,11 +1,3 @@
-version := "0.2.1-SNAPSHOT"
-
-sbtPlugin := true
-
-organization := "au.com.ecetera.sbt"
-
-name := "sbt-web-s3"
-
 ScriptedPlugin.scriptedSettings
 
 scriptedLaunchOpts <++= version apply { version =>
@@ -14,14 +6,9 @@ scriptedLaunchOpts <++= version apply { version =>
 
 scriptedBufferLog := false
 
-libraryDependencies ++= {
-  val sprayV ="1.3.2"
-  val awsV = "1.3.29"
-  Seq(
-    "com.amazonaws" % "aws-java-sdk" % awsV,
-    "io.spray"      %% "spray-http"    % sprayV
-  )
-}
+//needed for scalaz streamz in specs two extra matchers.... I'm not useing them so why?
+//resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
+
 
 resourceGenerators in Compile += Def.task {
   val readme = (baseDirectory in Compile).value / "README.md"
@@ -33,7 +20,5 @@ resourceGenerators in Compile += Def.task {
 
 scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/root-doc.txt")
 
-scalacOptions in (Compile, doc) ++= Seq("-doc-title", "My Wonderful Module")
-
-
+scalacOptions in (Compile, doc) ++= Seq("-doc-title", "sbt-web-s3")
 
