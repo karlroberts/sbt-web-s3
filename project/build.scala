@@ -17,6 +17,7 @@ object ProjectSettings {
 object V {
   val sprayV ="1.3.2"
   val awsV = "1.3.29"
+//  val awsV = "1.7.13"
   val specs2V = "3.6"
   val scalacheckV = "1.10.0"
 }
