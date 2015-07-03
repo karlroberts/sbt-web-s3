@@ -3,17 +3,20 @@
 # sbt-web-s3
 
 ### Status
-* Currently a 0.2.1-20150609054819-72af433
-* It does publish to S3.
+* working.
+* Currently at version 0.2.1-20150609054819-72af433
+* Successfully publishes to S3.
 * Incremental mode works so now with s3wsSync - so only changed files go up and deleted file are removed.
 * sw3Prefix now enables publishing and deleting from a "directory" or "folder" in your bucket.
 
 ## Description
 
 This AutoPlugin's main goal is to allow you to publish compressed static website assets to an Amazon AWS S3 bucket.
-By default all the files found in the s3wsAssetDir will be uploaded to the specified bucket. Files that can
+By default all the files found in the `s3wsAssetDir` will be uploaded to the specified bucket. Files that can
 be compressed will be gzip'ed on upload and the S3 ObjectMetadata (aka the Content-Encoding header) will be set
 so that a browser will expand the file on render.
+
+It is designed to compliment sbt [sbt-web](https://github.com/sbt/sbt-web) but can also be used simply to publish simple static web pages, for example a reveal.js slide show ( see the [giter8 example](http://???) (todo) to quickly set up a reveal.js slideshow published in you S3 bucket. At ecetera we regularly use the [giter8](http://???) to create published tech talks.
 
 ### [sbt-web](https://github.com/sbt/sbt-web) interaction
 While this plugin is not an sbt-web pipeline plugin its default configuration is designed to work with sbt-web piplines
@@ -57,10 +60,10 @@ Please check the Scaladoc API of the `S3WebsitePlugin` object, and of its nested
 to get additional documentation of the available sbt tasks.
 
 ## Task Descriptions
-    s3wsUpload : this task will use your Settings (see below) to upload Web assets to your S3 bucket. By default only
+    s3wsUpload : this task will use your Settings (see below) to upload Web assets to the sw3Prefix path in your S3 bucket. By default only
                  new or modified files will be uploaded (see s3wsIncremental setting below).
 
-    s3wsDeleteAll : This task will use your settings to delete all objects from your S3 bucket
+    s3wsDeleteAll : This task will use your settings to delete all objects from the sw3Prefix path in your S3 bucket
 
     s3wsSync : this task will use your settings below to run s3wsUpload but also will delete files from S3 that have
                been removed locally.
@@ -192,8 +195,8 @@ To Build
 
     $ ./sbt
 
-NB currently this is not published anywhere so to use it you need to publishLocal
-as a helper the Makefile can do this for you, or simply type "publishLocal" from the sbt prompt.
+NB the publish task publishes this plugin in on a repo hosted in S3 (of course :-), this requires Ecetera credentials, so for development you'll need to use `publishLocal` task.
+As a helper the Makefile can do this for you, or simply type "publishLocal" from the sbt prompt.
 
     $ make
 
