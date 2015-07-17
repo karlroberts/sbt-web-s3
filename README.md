@@ -3,11 +3,32 @@
 # sbt-web-s3
 
 ### Status
-* working.
-* Currently at version 0.2.1-20150609054819-72af433
+* working, published.
+* Currently at version 0.2.2-20150717024353-9b59820
 * Successfully publishes to S3.
 * Incremental mode works so now with s3wsSync - so only changed files go up and deleted file are removed.
 * sw3Prefix now enables publishing and deleting from a "directory" or "folder" in your bucket.
+
+## Usage
+
+Add to your project/sbt-web-s3.sbt the following lines:-
+
+    resolvers += Resolver.url("ecetera-repo-oss", new URL("https://s3-ap-southeast-2.amazonaws.com/ecetera-repo-oss/"))(Resolver.ivyStylePatterns)
+
+    addSbtPlugin("au.com.ecetera.sbt" % "sbt-web-s3" % "0.2.2-20150717024353-9b59820")
+
+Add to your build.sbt file the following line:-
+
+    import au.com.ecetera.sbt.S3WebsitePlugin.S3WS._
+    
+    enablePlugins(S3WebsitePlugin)
+
+You will then be able to use the task `s3wsSync` or `s3wsUpload` defined
+in the nested object `au.com.ecetera.sbt.S3WebsitePlugin.S3WS`.
+All these operations will use HTTPS as a transport protocol.
+
+Please check the Scaladoc API of the `S3WebsitePlugin` object, and of its nested `S3WS` object,
+to get additional documentation of the available sbt tasks.
 
 ## Description
 
@@ -38,35 +59,14 @@ For this help use:-
 
     $ ./sbt s3wsReadme
 
-## Usage
-
-Add to your project/sbt-web-s3.sbt the following lines:-
-
-    resolvers += Resolver.url("ecetera-repo-oss", new URL("https://s3-ap-southeast-2.amazonaws.com/ecetera-repo-oss/"))(Resolver.ivyStylePatterns)
-
-    addSbtPlugin("au.com.ecetera.sbt" % "sbt-web-s3" % "0.2.1-20150609054819-72af433")
-
-Add to your build.sbt file the following line:-
-
-    import au.com.ecetera.sbt.S3WebsitePlugin.S3WS._
-    
-    enablePlugins(S3WebsitePlugin)
-
-You will then be able to use the task `s3wsSync` or `s3wsUpload` defined
-in the nested object `au.com.ecetera.sbt.S3WebsitePlugin.S3WS`.
-All these operations will use HTTPS as a transport protocol.
-
-Please check the Scaladoc API of the `S3WebsitePlugin` object, and of its nested `S3WS` object,
-to get additional documentation of the available sbt tasks.
-
 ## Task Descriptions
+    s3wsSync : this task will use your settings below to run s3wsUpload but also will delete files from S3 that have
+               been removed locally. This is the default task to use to keep your s3 bucket in sync with your local assetDir. 
+
     s3wsUpload : this task will use your Settings (see below) to upload Web assets to the sw3Prefix path in your S3 bucket. By default only
                  new or modified files will be uploaded (see s3wsIncremental setting below).
 
     s3wsDeleteAll : This task will use your settings to delete all objects from the sw3Prefix path in your S3 bucket
-
-    s3wsSync : this task will use your settings below to run s3wsUpload but also will delete files from S3 that have
-               been removed locally.
 
     s3wsDeleteWhat : shows what files s3wsSync will delete.
 
