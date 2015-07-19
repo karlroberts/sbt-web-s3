@@ -72,16 +72,13 @@ For this help use:-
 
 ## Setting Descriptions
 
-    s3wsPrefix in s3wsUpload : Defaults to empty string "". Adds a prefix to all files when added to the s3 bucket. For a static website this is like
+    s3wsPrefix : Defaults to empty string "". Adds a prefix to all files when added to the s3 bucket. For a static website this is like
                  putting all the files in a subdirectory of the webserver. eg
 
-      s3wsPrefix in s3wsUpload := "mydir/"
+      s3wsPrefix := "mydir/"
 
-                 will result in all the files ending up under <s3bucketname>/mydir/
-
-    s3wsPrefix in s3wsDeleteAll : Defaults to empty string "". Adds a prefix when searching for files to delete in s3. Only files with that prefix
-                 will be deleted. Normally the prefix will be the same one used in s3wsPrefix in s3wsUpload
-
+                 will result in all the files ending up under `<s3bucketname>/mydir/`
+                 Using s3wsDeleteAll will delete all files in the bucket with that prefix.
 
     s3wsIncremental : Boolean, defaults to true. If true only publishes the files that have changed since last time
                       s3Upload was run. Normally used with s3wsSync which also deletes remote S3 files that you have
@@ -100,9 +97,8 @@ For this help use:-
                    if you run webStage from sbt-web then all you assets will be sitting in ./target/web/stage waiting
                    for you to run s3wsSync or s3wsUpload to push to S3 bucket.
 
-    bucket in s3wsUpload : S3 bucket used by the s3wsUpload task, either "mybucket.s3.amazonaws.com" or "mybucket".
-
-    bucket in s3wsDeleteAll : S3 bucket used by the s3wsDeleteAll task, either "mybucket.s3.amazonaws.com" or "mybucket".
+    bucket : S3 bucket used by the s3wsUpload, s3wsDeleteAll and s3wsDeleteDiff tasks.
+      it's form is either "mybucket.s3.amazonaws.com" or, if you have linked the bucket name to Route53 DNS, "mybucket".
 
     progressBar in s3wsUpload : Boolean, defaults to false. Set to true to get a progress indicator during S3 uploads/downloads.
 

@@ -53,7 +53,7 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
      *  1. "mybucket.s3.amazonaws.com", where "mybucket" is the bucket name, or
      *  1. "mybucket"
      */
-    lazy val bucket=settingKey[String]("Host used by the s3wsUpload operation, either \"mybucket.s3.amazonaws.com\" or \"mybucket\".")
+    lazy val s3wsBucket=settingKey[String]("Host used by the s3wsUpload or s3wsDeleteAll operation, either \"mybucket.s3.amazonaws.com\" or \"mybucket\".")
 
     /**
      * If you set "progressBar" to true, a progress indicator will be displayed while the individual files are uploaded or downloaded.
@@ -81,10 +81,12 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
         s3wsLeaveAsIs.value,
         s3wsIncremental.value /*, streams.value.log */ )
     },
-    bucket in s3wsUpload         := "",
-    bucket in s3wsDeleteAll      := "",
-    s3wsPrefix in s3wsUpload     := "",
-    s3wsPrefix in s3wsDeleteAll  := "",
+    s3wsBucket                   := "unspecified bucket",
+    s3wsBucket in s3wsUpload     := s3wsBucket.value,
+    s3wsBucket in s3wsDeleteAll  := s3wsBucket.value,
+    s3wsPrefix                   := "",
+    s3wsPrefix in s3wsUpload     := s3wsPrefix.value,
+    s3wsPrefix in s3wsDeleteAll  := s3wsPrefix.value,
     progressBar in s3wsUpload := false,
     s3wsDeleteWhat <<= initDeleteWhat(s3ObjectSummaries),
     s3wsDeleteDiff <<= initDeleteDiff(
@@ -134,7 +136,7 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
                   thisTask:TaskKey[Unit],
                   op: (AmazonS3Client, S3Bucket, S3Prefix, (File,String), MetadataMap, Boolean) => Unit,
                   msg:(S3Bucket,(File,String))=>String, lastMsg:(S3Bucket,Seq[(File,String)],S3Prefix)=>String) =
-    (target in thisTask, s3wsUploadInfo in thisTask, credentials in thisTask, bucket in thisTask, s3wsPrefix in thisTask, progressBar in thisTask, s3wsIncremental in thisTask,  streams ) map {
+    (target in thisTask, s3wsUploadInfo in thisTask, credentials in thisTask, s3wsBucket in thisTask, s3wsPrefix in thisTask, progressBar in thisTask, s3wsIncremental in thisTask,  streams ) map {
       (target, uploaddata, creds, host, prefix, progress, incremental, streams) => {
         S3Publish(creds, uploaddata._1, host, prefix, progress, streams, uploaddata._2, op, msg, lastMsg, target / "s3ws.lastupload" )
       }
@@ -143,20 +145,20 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
   def initDeleteAll(thisTask:TaskKey[Try[DeleteObjectsResult]],
                  op: (AmazonS3Client, S3Bucket, S3Prefix) => Try[DeleteObjectsResult],
                  msg:(S3Bucket,String)=>String, lastMsg:(S3Bucket, S3Prefix)=>String ) =
-    (credentials in thisTask, bucket in thisTask, s3wsPrefix in thisTask, streams ) map {
+    (credentials in thisTask, s3wsBucket in thisTask, s3wsPrefix in thisTask, streams ) map {
       (creds, bucket, prefix, streams) =>
         S3Publish.deleteAll(creds, bucket, prefix, streams, op, msg, lastMsg)
     }
 
   def initDeleteDiff(op:(AmazonS3Client, S3Bucket, Set[S3Key]) => Try[DeleteObjectsResult],
                      msg:(S3Bucket,String)=>String, lastMsg:(S3Bucket, S3Prefix)=>String ) =
-    (credentials in s3wsDeleteAll, bucket in s3wsDeleteAll, s3wsPrefix in s3wsDeleteAll, s3wsDeleteWhat, streams) map {
+    (credentials in s3wsDeleteAll, s3wsBucket in s3wsDeleteAll, s3wsPrefix in s3wsDeleteAll, s3wsDeleteWhat, streams) map {
       (creds,bucket, prefix, delWhat, streams) =>
         S3Publish.deleteFromS3(creds, bucket, prefix, delWhat, streams, op, msg, lastMsg)
     }
 
   def initDeleteWhat(op: (AmazonS3Client, S3Bucket, S3Prefix) => Try[List[S3ObjectSummary]]) =
-    (s3wsAssetDir in s3wsUpload, credentials in s3wsUpload, bucket in s3wsUpload, s3wsPrefix in s3wsUpload, streams ) map {
+    (s3wsAssetDir in s3wsUpload, credentials in s3wsUpload, s3wsBucket in s3wsUpload, s3wsPrefix in s3wsUpload, streams ) map {
       (assetDir, creds, bucket, prefix, streams) =>
         val toDel = S3Publish.diffWithLocal(assetDir, creds, bucket, prefix, op)
         val ret = toDel.map(_.fold("")((acc, s) => acc ++ s"will del -> $s")) getOrElse ("Oops Was unable to see what should be deleted")
