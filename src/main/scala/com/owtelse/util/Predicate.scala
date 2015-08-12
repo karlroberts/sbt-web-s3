@@ -1,4 +1,4 @@
-package au.com.ecetera.util
+package com.owtelse.util
 
 /**
  * Created by robertk on 26/02/15.

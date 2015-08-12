@@ -1,4 +1,4 @@
-package au.com.ecetera.sbt
+package com.owtelse.sbt
 import sbt._
 import Keys._
 import scala.io.Source

@@ -1,10 +1,10 @@
-[//]: # (This is the README.md file for au.com.ecetera.sbt sbt-web-s3 plugin)
+[//]: # (This is the README.md file for com.owtelse.sbt sbt-web-s3 plugin)
 
 # sbt-web-s3
 
 ### Status
 * working, published.
-* Currently at version 0.2.2-20150717024353-9b59820
+* Currently at version 0.2.2-20150812074940-deac20e
 * Successfully publishes to S3.
 * Incremental mode works so now with s3wsSync - so only changed files go up and deleted file are removed.
 * sw3Prefix now enables publishing and deleting from a "directory" or "folder" in your bucket.
@@ -13,18 +13,18 @@
 
 Add to your project/sbt-web-s3.sbt the following lines:-
 
-    resolvers += Resolver.url("ecetera-repo-oss", new URL("https://s3-ap-southeast-2.amazonaws.com/ecetera-repo-oss/"))(Resolver.ivyStylePatterns)
+    resolvers += Resolver.url("owtelse-repo-oss", new URL("https://s3-ap-southeast-2.amazonaws.com/owtelse-repo-oss/"))(Resolver.ivyStylePatterns)
 
-    addSbtPlugin("au.com.ecetera.sbt" % "sbt-web-s3" % "0.2.2-20150717024353-9b59820")
+    addSbtPlugin("com.owtelse.sbt" % "sbt-web-s3" % "0.2.2-20150812074940-deac20e")
 
 Add to your build.sbt file the following line:-
 
-    import au.com.ecetera.sbt.S3WebsitePlugin.S3WS._
+    import com.owtelse.sbt.S3WebsitePlugin.S3WS._
     
     enablePlugins(S3WebsitePlugin)
 
 You will then be able to use the task `s3wsSync` or `s3wsUpload` defined
-in the nested object `au.com.ecetera.sbt.S3WebsitePlugin.S3WS`.
+in the nested object `com.owtelse.sbt.S3WebsitePlugin.S3WS`.
 All these operations will use HTTPS as a transport protocol.
 
 Please check the Scaladoc API of the `S3WebsitePlugin` object, and of its nested `S3WS` object,
@@ -37,7 +37,7 @@ By default all the files found in the `s3wsAssetDir` will be uploaded to the spe
 be compressed will be gzip'ed on upload and the S3 ObjectMetadata (aka the Content-Encoding header) will be set
 so that a browser will expand the file on render.
 
-It is designed to compliment sbt [sbt-web](https://github.com/sbt/sbt-web) but can also be used simply to publish simple static web pages, for example a reveal.js slide show ( see the [giter8 example](http://???) (todo) to quickly set up a reveal.js slideshow published in you S3 bucket. At ecetera we regularly use the [giter8](http://???) to create published tech talks.
+It is designed to compliment sbt [sbt-web](https://github.com/sbt/sbt-web) but can also be used simply to publish simple static web pages, for example a reveal.js slide show ( see the [giter8 example](https://github.com/karlroberts/techtalk.g8) (todo) to quickly set up a reveal.js slideshow published in you S3 bucket. At Avocado Consulting we regularly use the [giter8](https://github.com/karlroberts/techtalk.g8) to create published tech talks.
 
 ### [sbt-web](https://github.com/sbt/sbt-web) interaction
 While this plugin is not an sbt-web pipeline plugin its default configuration is designed to work with sbt-web piplines
@@ -111,11 +111,11 @@ Here is a complete example:
 
 project/plugin.sbt:
 
-    addSbtPlugin("au.com.ecetera.sbt" % "sbt-web-s3" % "0.1.0-SNAPSHOT")
+    addSbtPlugin("com.owtelse.sbt" % "sbt-web-s3" % "0.1.0-SNAPSHOT")
 
 build.sbt:
 
-    import _root_.au.com.ecetera.sbt.S3WebsitePlugin.S3WS._
+    import _root_.com.owtelse.sbt.S3WebsitePlugin.S3WS._
 
     enablePlugins(S3WebsitePlugin)
 
@@ -170,11 +170,11 @@ build.sbt:
 
     s3wsPrefix in s3wsUpload :- "karlstuff/"
 
-for example at Ecetera we use this to publish deleloper's tech talks slide decks to subdirectories of
-[our techtalks bucket](http://techtalks.ecetera.com.au)
+for example at Avacado Consulting we use this to publish developer's tech talks slide decks to subdirectories of
+[our techtalks bucket](http://docs.aws.avacadoconsulting.com.au/techtalks/)
 
 ## Bug fixes
-For bug fixes or suggestions please use the [Github issues link](https://github.com/Ecetera/sbt-web-s3/issues)
+For bug fixes or suggestions please use the [Github issues link](https://github.com/karlroberts/sbt-web-s3/issues)
 
 ## Known issues
 Incremental mode (default, s3wsIncremental := true) relies on a file called ./target/s3ws.lastupload which holds a
@@ -185,13 +185,13 @@ touched or not.
 ## Develop
 Clone this repo.
 
-    $ git clone https://github.com/Ecetera/sbt-web-s3.git
+    $ git clone https://github.com/karlroberts/sbt-web-s3.git
 
 To Build
 
     $ ./sbt
 
-NB the publish task publishes this plugin in on a repo hosted in S3 (of course :-), this requires Ecetera credentials, so for development you'll need to use `publishLocal` task.
+NB the publish task publishes this plugin in on a repo hosted in S3 (of course :-), this requires my Owtelse credentials, so for development you'll need to use `publishLocal` task.
 As a helper the Makefile can do this for you, or simply type "publishLocal" from the sbt prompt.
 
     $ make

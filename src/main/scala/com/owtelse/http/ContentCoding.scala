@@ -1,4 +1,4 @@
-package au.com.ecetera.http
+package com.owtelse.http
 
 /**
  * All Known Content Coding

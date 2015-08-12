@@ -1,8 +1,10 @@
-package au.com.ecetera.sbt
+package com.owtelse.sbt
 
 
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.{ProgressEvent, ProgressListener, PutObjectRequest}
+import com.owtelse.http.ContentCoding
+import com.owtelse.util.Predicate
 import sbt.Keys._
 import sbt._
 import spray.http.MediaType
@@ -255,7 +257,7 @@ object S3WebsitePlugin extends sbt.AutoPlugin {
 object S3Publish {
   import java.util.{List => JList}
 
-  import au.com.ecetera.util.Predicate._
+  import Predicate._
   import com.amazonaws.auth.BasicAWSCredentials
   import com.amazonaws.services.s3.AmazonS3Client
   import com.amazonaws.services.s3.model.{DeleteObjectsResult, ObjectMetadata, S3ObjectSummary}
@@ -426,7 +428,7 @@ object S3Publish {
    * @return
    */
   def gzipMetaData(mediaType: MediaType): Option[(MediaType,ObjectMetadata)] = {
-    import au.com.ecetera.http.ContentCoding._
+    import ContentCoding._
     if(mediaType.compressible) {
       var omd = new ObjectMetadata()
       omd.setContentType(mediaType.toString)

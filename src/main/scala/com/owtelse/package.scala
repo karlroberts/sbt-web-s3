@@ -1,8 +1,8 @@
-package au.com
+package com
 
 /**
  * Created by robertk on 26/02/15.
  */
-package object ecetera {
+package object owtelse {
 
 }

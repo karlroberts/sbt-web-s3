@@ -6,7 +6,7 @@ import com.amazonaws.services.s3.model.Region
 import com.ambiata.promulgate.project.ProjectPlugin._
 
 object ProjectSettings {
-  val organisation = "au.com.ecetera.sbt"
+  val organisation = "com.owtelse.sbt"
   val id = "sbt-web-s3"
   val isSnapshot = true
   private[this] val versionNum = "0.2.2"
@@ -97,7 +97,7 @@ object SbtWebS3Build extends Build {
       , publishArtifact in Test     := false
       , pomIncludeRepository        := { _ => false }
       , publishTo                   <<= (s3credentials).apply((creds) =>
-        Some(S3Resolver(creds, false, Region.AP_Sydney)("ecetera-oss-publish", ss33("ecetera-repo-oss")).withIvyPatterns))
+        Some(S3Resolver(creds, false, Region.AP_Sydney)("owtelse-oss-publish", ss33("owtelse-repo-oss")).withIvyPatterns))
     )
 
   //standardSettings ++
@@ -112,6 +112,6 @@ object SbtWebS3Build extends Build {
       , libraryDependencies <++= scalaVersion ( sv => coredeps(sv) )
     )
 //        ++ VersionPlugin.uniqueVersionSettings
-        ++ promulgate.library("au.com.ecetera.sbt", "ecetera-repo-oss")
+        ++ promulgate.library("com.owtelse.sbt", "owtelse-repo-oss")
   )
 }

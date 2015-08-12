@@ -1,10 +1,10 @@
-package au.com.ecetera.util
+package com.owtelse.util
 
 import org.specs2._
 
 /*
  * ====
- *     Copyright 2015 Ecetera Pty Ltd
+ *     Copyright 2015 Karl Roberts <karl.roberts@owtelse.com>
  *
  *     Licensed under the Apache License, Version 2.0 (the "License");
  *     you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import org.specs2._
  *     limitations under the License.
  * ====
  *
- * (c) Copyright Ecetera Pty Ltd, 2015
+ * (c) Copyright Karl Roberts <karl.roberts@owtelse.com>, 2015
  *
  * Some files contain other unattributed Contributions to the Work; All Contributions
  * received from Contributors under the terms of the Apache License Agreement v 2.0 and
